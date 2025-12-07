@@ -1,0 +1,133 @@
+# docker-compose.yml
+# Pronexma Protocol - Development Infrastructure
+#
+# Services:
+#   - qubic-node: Qubic Core Lite node (placeholder - use official image when available)
+#   - qubic-rpc: HTTP/JSON RPC bridge to the node
+#   - pronexma-backend: Node.js Oracle & API service
+#   - pronexma-frontend: Next.js web application
+
+version: '3.8'
+
+services:
+  # ============================================================================
+  # QUBIC INFRASTRUCTURE
+  # ============================================================================
+  
+  # Qubic Core Lite Node
+  # NOTE: Replace with official Qubic image when available
+  # See: https://github.com/qubic/core
+  qubic-node:
+    image: qubic/core-lite:latest  # Placeholder - use actual image
+    container_name: pronexma-qubic-node
+    restart: unless-stopped
+    ports:
+      - "21841:21841"  # Qubic P2P port
+    volumes:
+      - qubic-data:/data
+    environment:
+      - QUBIC_NETWORK=testnet
+      - QUBIC_LOG_LEVEL=info
+    networks:
+      - pronexma-network
+    # Healthcheck for node readiness
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:21841/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Qubic RPC Bridge
+  # Translates HTTP/JSON requests to Qubic's binary protocol
+  # Based on: https://github.com/Zgirt/Testnet-RPC
+  qubic-rpc:
+    image: qubic/testnet-rpc:latest  # Placeholder - use actual image
+    container_name: pronexma-qubic-rpc
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - QUBIC_NODE_HOST=qubic-node
+      - QUBIC_NODE_PORT=21841
+      - RPC_PORT=8080
+      - LOG_LEVEL=info
+    depends_on:
+      qubic-node:
+        condition: service_healthy
+    networks:
+      - pronexma-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================================================
+  # PRONEXMA SERVICES
+  # ============================================================================
+
+  # Backend: Oracle & API Service
+  pronexma-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pronexma-backend
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - DATABASE_URL=file:/app/data/pronexma.db
+      - RPC_URL=http://qubic-rpc:8080
+      - NETWORK_MODE=${NETWORK_MODE:-LOCAL_DEV}
+      - DEMO_MODE=${DEMO_MODE:-false}
+      - ORACLE_PRIVATE_KEY=${ORACLE_PRIVATE_KEY:-demo-key}
+      - FRONTEND_URL=http://localhost:3000
+      - LOG_LEVEL=debug
+    volumes:
+      - backend-data:/app/data
+    depends_on:
+      qubic-rpc:
+        condition: service_healthy
+    networks:
+      - pronexma-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Frontend: Next.js Web Application
+  pronexma-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pronexma-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:4000
+      - NEXT_PUBLIC_NETWORK_NAME=Qubic Testnet
+    depends_on:
+      pronexma-backend:
+        condition: service_healthy
+    networks:
+      - pronexma-network
+
+# ============================================================================
+# NETWORKS & VOLUMES
+# ============================================================================
+
+networks:
+  pronexma-network:
+    driver: bridge
+
+volumes:
+  qubic-data:
+    driver: local
+  backend-data:
+    driver: local

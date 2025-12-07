@@ -1,0 +1,204 @@
+// prisma/schema.prisma
+// Pronexma Protocol - Database Schema
+// Using SQLite for development, can be switched to PostgreSQL for production
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// CORE MODELS
+// =============================================================================
+
+model Agreement {
+  id                String   @id @default(uuid())
+  onChainId         String?  @unique // Qubic contract agreement ID
+  
+  // Parties
+  payerAddress      String
+  beneficiaryAddress String
+  oracleAdminAddress String
+  
+  // Financial
+  totalAmount       BigInt
+  lockedAmount      BigInt   @default(0)
+  releasedAmount    BigInt   @default(0)
+  
+  // Status
+  state             String   @default("CREATED")
+  
+  // Metadata
+  title             String
+  description       String?
+  tags              String?  // JSON array of tags
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  fundedAt          DateTime?
+  completedAt       DateTime?
+  
+  // Timeout
+  timeoutAt         DateTime?
+  
+  // Relations
+  milestones        Milestone[]
+  transactions      Transaction[]
+  webhookEvents     WebhookEvent[]
+  
+  @@index([payerAddress])
+  @@index([beneficiaryAddress])
+  @@index([state])
+}
+
+model Milestone {
+  id               String   @id @default(uuid())
+  agreementId      String
+  
+  // Order within agreement
+  sequenceNumber   Int
+  
+  // Financial
+  amount           BigInt
+  
+  // Status
+  state            String   @default("PENDING")
+  
+  // Metadata
+  title            String
+  description      String?
+  verificationSource String? // github, jira, manual, etc.
+  
+  // Verification
+  verifiedAt       DateTime?
+  releasedAt       DateTime?
+  evidenceHash     String?  // Hash of verification evidence
+  evidenceData     String?  // JSON evidence data
+  
+  // Timestamps
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Relations
+  agreement        Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  
+  @@unique([agreementId, sequenceNumber])
+  @@index([agreementId])
+  @@index([state])
+}
+
+model Transaction {
+  id               String   @id @default(uuid())
+  agreementId      String
+  
+  // Transaction details
+  type             String
+  txHash           String?  // On-chain transaction hash (null in demo mode)
+  
+  // Financial
+  amount           BigInt
+  
+  // Status
+  status           String   @default("PENDING")
+  
+  // Metadata
+  fromAddress      String?
+  toAddress        String?
+  milestoneId      String?
+  
+  // Error handling
+  errorMessage     String?
+  
+  // Timestamps
+  createdAt        DateTime @default(now())
+  confirmedAt      DateTime?
+  
+  // Relations
+  agreement        Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  
+  @@index([agreementId])
+  @@index([txHash])
+  @@index([type])
+}
+
+model WebhookEvent {
+  id               String   @id @default(uuid())
+  agreementId      String
+  milestoneId      String?
+  
+  // Source information
+  source           String   // github, gitlab, jira, zapier, manual
+  eventType        String   // pr_merged, issue_closed, etc.
+  
+  // Payload
+  payload          String   // JSON payload
+  signature        String?  // HMAC signature for validation
+  
+  // Processing status
+  status           String   @default("RECEIVED")
+  processedAt      DateTime?
+  errorMessage     String?
+  
+  // Result
+  milestoneTriggered Boolean @default(false)
+  
+  // Timestamps
+  createdAt        DateTime @default(now())
+  
+  // Relations
+  agreement        Agreement @relation(fields: [agreementId], references: [id], onDelete: Cascade)
+  
+  @@index([agreementId])
+  @@index([source])
+  @@index([status])
+}
+
+// =============================================================================
+// AUTH & SESSIONS
+// =============================================================================
+
+model Session {
+  id               String   @id @default(uuid())
+  walletAddress    String
+  
+  // Token
+  token            String   @unique
+  
+  // Demo mode
+  isDemo           Boolean  @default(false)
+  demoRole         String?  // investor, beneficiary, oracle
+  
+  // Timestamps
+  createdAt        DateTime @default(now())
+  expiresAt        DateTime
+  
+  @@index([walletAddress])
+  @@index([token])
+}
+
+model DemoWallet {
+  id               String   @id @default(uuid())
+  address          String   @unique
+  
+  // Balance
+  balance          BigInt   @default(0)
+  
+  // Role
+  role             String   // investor, beneficiary, oracle
+  
+  // Label
+  label            String?
+  
+  // Timestamps
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+// =============================================================================
+// ENUMS (defined as TypeScript enums in services, stored as strings in SQLite)
+// =============================================================================

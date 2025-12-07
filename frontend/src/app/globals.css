@@ -1,0 +1,172 @@
+/* frontend/src/app/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  :root {
+    --color-primary: 75 124 255;
+    --color-emerald: 52 211 153;
+    --color-amber: 251 191 36;
+    --color-red: 249 115 115;
+  }
+  
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  body {
+    @apply bg-base text-text-primary;
+    min-height: 100vh;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-surface;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-border-light rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-muted;
+  }
+}
+
+@layer components {
+  /* Card styles */
+  .card {
+    @apply bg-surface border border-border rounded-card shadow-card;
+  }
+  
+  .card-elevated {
+    @apply bg-surface-elevated border border-border rounded-card shadow-elevated;
+  }
+  
+  /* Button variants */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-base;
+  }
+  
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary-500 focus:ring-primary;
+    @apply active:scale-[0.98];
+  }
+  
+  .btn-secondary {
+    @apply btn bg-surface-alt text-text-primary border border-border hover:bg-surface-elevated focus:ring-border-light;
+  }
+  
+  .btn-ghost {
+    @apply btn bg-transparent text-text-secondary hover:bg-surface-alt hover:text-text-primary;
+  }
+  
+  .btn-success {
+    @apply btn bg-emerald text-white hover:bg-emerald-500 focus:ring-emerald;
+  }
+  
+  .btn-danger {
+    @apply btn bg-red text-white hover:bg-red-500 focus:ring-red;
+  }
+  
+  .btn-sm {
+    @apply px-3 py-1.5 text-body-sm;
+  }
+  
+  .btn-lg {
+    @apply px-6 py-3 text-body-lg;
+  }
+  
+  /* Input styles */
+  .input {
+    @apply w-full px-4 py-2.5 bg-surface-alt border border-border rounded-lg;
+    @apply text-text-primary placeholder:text-text-muted;
+    @apply focus:outline-none focus:border-border-focus focus:ring-1 focus:ring-border-focus;
+    @apply transition-colors duration-200;
+  }
+  
+  .input-error {
+    @apply border-red focus:border-red focus:ring-red;
+  }
+  
+  /* Label styles */
+  .label {
+    @apply block text-body-sm font-medium text-text-secondary mb-1.5;
+  }
+  
+  /* Status pill */
+  .pill {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-caption font-medium;
+  }
+  
+  .pill-primary {
+    @apply pill bg-primary/20 text-primary-300;
+  }
+  
+  .pill-success {
+    @apply pill bg-emerald/20 text-emerald-300;
+  }
+  
+  .pill-warning {
+    @apply pill bg-amber/20 text-amber-300;
+  }
+  
+  .pill-danger {
+    @apply pill bg-red/20 text-red-300;
+  }
+  
+  .pill-neutral {
+    @apply pill bg-surface-alt text-text-muted;
+  }
+  
+  /* Heading styles */
+  .heading-display {
+    @apply font-heading text-display font-bold text-text-primary;
+  }
+  
+  .heading-headline {
+    @apply font-heading text-headline font-semibold text-text-primary;
+  }
+  
+  .heading-title {
+    @apply font-heading text-title font-semibold text-text-primary;
+  }
+  
+  /* Monospace for addresses/amounts */
+  .mono {
+    @apply font-mono text-body-sm;
+  }
+  
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-emerald bg-clip-text text-transparent;
+  }
+}
+
+@layer utilities {
+  /* Animation utilities */
+  .animate-in {
+    animation: fadeIn 0.3s ease-out, slideUp 0.3s ease-out;
+  }
+  
+  /* Glow effects */
+  .glow-primary {
+    box-shadow: 0 0 30px rgba(75, 124, 255, 0.2);
+  }
+  
+  .glow-emerald {
+    box-shadow: 0 0 30px rgba(52, 211, 153, 0.2);
+  }
+}
