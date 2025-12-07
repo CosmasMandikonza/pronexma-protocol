@@ -1,128 +1,76 @@
-// frontend/src/components/VaultStateSummary.tsx
 'use client';
 
-import { Lock, Unlock, TrendingUp, Clock } from 'lucide-react';
-import { Agreement } from '@/lib/api';
+import React from 'react';
 import { formatAmount } from '@/lib/walletContext';
-import { cn, calculatePercentage, formatDate } from '@/lib/utils';
 
-interface VaultStateSummaryProps {
-  agreement: Agreement;
+export type VaultStateSummaryProps = {
+  totalAmount: string;
+  lockedAmount: string;
+  releasedAmount: string;
+};
+
+function toBigInt(value: string | undefined | null): bigint {
+  try {
+    return BigInt(value ?? '0');
+  } catch {
+    return BigInt(0);
+  }
 }
 
-export function VaultStateSummary({ agreement }: VaultStateSummaryProps) {
-  const lockedPercent = calculatePercentage(agreement.lockedAmount, agreement.totalAmount);
-  const releasedPercent = calculatePercentage(agreement.releasedAmount, agreement.totalAmount);
-  const remainingPercent = 100 - lockedPercent - releasedPercent;
+export function VaultStateSummary({
+  totalAmount,
+  lockedAmount,
+  releasedAmount,
+}: VaultStateSummaryProps) {
+  const total = toBigInt(totalAmount);
+  const locked = toBigInt(lockedAmount);
+  const released = toBigInt(releasedAmount);
 
-  const isTimedOut = new Date(agreement.timeoutAt) < new Date();
-  const daysRemaining = Math.max(0, Math.ceil(
-    (new Date(agreement.timeoutAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-  ));
+  const remaining = total > released ? total - released : BigInt(0);
 
   return (
-    <div className="card p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="font-heading text-title font-semibold text-text-primary">
-          Vault Summary
-        </h2>
-        <div className={cn(
-          'flex items-center gap-2 px-3 py-1.5 rounded-full text-body-sm',
-          isTimedOut 
-            ? 'bg-red/10 text-red' 
-            : daysRemaining <= 7 
-              ? 'bg-amber/10 text-amber' 
-              : 'bg-surface-alt text-text-muted'
-        )}>
-          <Clock className="h-4 w-4" />
-          {isTimedOut ? 'Expired' : `${daysRemaining} days remaining`}
+    <section className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-6">
+      {/* Total locked */}
+      <div className="bg-surface rounded-xl p-6 border border-border">
+        <div className="text-xs font-medium text-muted mb-1 uppercase tracking-[0.16em]">
+          Total QUBIC in vault
         </div>
+        <div className="text-2xl font-semibold text-text">
+          {formatAmount(totalAmount)}{' '}
+          <span className="text-xs font-normal text-muted">QUBIC</span>
+        </div>
+        <p className="mt-2 text-xs text-muted">
+          Full allocation committed to this agreement.
+        </p>
       </div>
 
-      {/* Progress bar */}
-      <div className="mb-6">
-        <div className="h-4 bg-surface-alt rounded-full overflow-hidden flex">
-          {releasedPercent > 0 && (
-            <div 
-              className="bg-emerald transition-all duration-500"
-              style={{ width: `${releasedPercent}%` }}
-            />
-          )}
-          {lockedPercent > 0 && (
-            <div 
-              className="bg-primary transition-all duration-500"
-              style={{ width: `${lockedPercent}%` }}
-            />
-          )}
-          {remainingPercent > 0 && (
-            <div 
-              className="bg-surface transition-all duration-500"
-              style={{ width: `${remainingPercent}%` }}
-            />
-          )}
+      {/* Released */}
+      <div className="bg-surface rounded-xl p-6 border border-border">
+        <div className="text-xs font-medium text-muted mb-1 uppercase tracking-[0.16em]">
+          Released to beneficiary
         </div>
-        <div className="flex justify-between mt-2 text-caption text-text-muted">
-          <span>0%</span>
-          <span>100%</span>
+        <div className="text-2xl font-semibold text-success">
+          {formatAmount(releasedAmount)}{' '}
+          <span className="text-xs font-normal text-muted">QUBIC</span>
         </div>
+        <p className="mt-2 text-xs text-muted">
+          Sum of all verified and paid-out milestones.
+        </p>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* Total */}
-        <div className="p-4 rounded-lg bg-surface-alt border border-border">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-surface">
-              <TrendingUp className="h-4 w-4 text-text-muted" />
-            </div>
-            <span className="text-caption text-text-muted">Total Value</span>
-          </div>
-          <div className="font-mono text-headline font-semibold text-text-primary">
-            {formatAmount(agreement.totalAmount)}
-          </div>
-          <div className="text-caption text-text-muted">QUBIC</div>
+      {/* Remaining / still locked */}
+      <div className="bg-surface rounded-xl p-6 border border-border">
+        <div className="text-xs font-medium text-muted mb-1 uppercase tracking-[0.16em]">
+          Still locked in vault
         </div>
-
-        {/* Locked */}
-        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-primary/10">
-              <Lock className="h-4 w-4 text-primary" />
-            </div>
-            <span className="text-caption text-text-muted">Locked</span>
-          </div>
-          <div className="font-mono text-headline font-semibold text-primary">
-            {formatAmount(agreement.lockedAmount)}
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-caption text-text-muted">QUBIC</span>
-            <span className="text-caption font-medium text-primary">{lockedPercent}%</span>
-          </div>
+        <div className="text-2xl font-semibold text-warning">
+          {formatAmount(remaining.toString())}{' '}
+          <span className="text-xs font-normal text-muted">QUBIC</span>
         </div>
-
-        {/* Released */}
-        <div className="p-4 rounded-lg bg-emerald/5 border border-emerald/20">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 rounded-md bg-emerald/10">
-              <Unlock className="h-4 w-4 text-emerald" />
-            </div>
-            <span className="text-caption text-text-muted">Released</span>
-          </div>
-          <div className="font-mono text-headline font-semibold text-emerald">
-            {formatAmount(agreement.releasedAmount)}
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-caption text-text-muted">QUBIC</span>
-            <span className="text-caption font-medium text-emerald">{releasedPercent}%</span>
-          </div>
-        </div>
+        <p className="mt-2 text-xs text-muted">
+          Will only unlock when remaining milestones are verified.
+        </p>
       </div>
-
-      {/* Timeout info */}
-      <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-body-sm">
-        <span className="text-text-muted">Agreement timeout</span>
-        <span className="text-text-secondary">{formatDate(agreement.timeoutAt)}</span>
-      </div>
-    </div>
+    </section>
   );
 }
